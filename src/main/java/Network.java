@@ -1,5 +1,7 @@
 package main.java;
 
+import java.util.ArrayList;
+
 import processing.core.PApplet;
 
 /**
@@ -9,17 +11,88 @@ import processing.core.PApplet;
 * You will need to declare other variables.
 */
 public class Network {
-	
+	private final static int defaultX = 50;
+	private final static int row = 3;
+	private final static int space = 45;
+	private final static int defaultY = 50;
+	private final static int circleRadius = 500, circleCenterX = 700, circleCenterY = 300;
 	private PApplet parent;
+	private ArrayList<Character> characters;
+	private ArrayList<Integer> inside; //The circle inside the Big Circle.
+	private ArrayList<Integer> outside; //
 
-	public Network(PApplet parent){
-
+	public Network(PApplet parent, ArrayList<Character> c){
+		this.characters = c;
 		this.parent = parent;
-		
+		this.inside = new ArrayList<Integer>();
+		this.outside = new ArrayList<Integer>();
+		//Put all the circle to outside position
+		for (int i = 0; i < characters.size(); i++) {
+			outside.add(characters.get(i).getNumber());	
+			characters.get(i).setListNumber(i); 
+			characters.get(i).setInside(false);
+		}
 	}
 
 	public void display(){
+		//Draw the outside circle.
+		for (int i = 0; i < this.outside.size(); i++) {			
+			this.characters.get(this.outside.get(i)).setDimension(defaultX + (i%row)*space , defaultY + (i/row)*space);	
+			this.characters.get(this.outside.get(i)).display();
+		}
+		//Draw the inside circle.
+		for (int i = 0; i < this.inside.size(); i++) {	
+			double degree =  360;
+			degree = degree/ (double)this.inside.size()*(double) i;
+			int x = circleCenterX + (int) (Math.cos( Math.toRadians( degree ) )*circleRadius/2);
+			int y = circleCenterY + (int) (Math.sin( Math.toRadians( degree ) )*circleRadius/2);
+			this.characters.get(this.inside.get(i)).setDimension(x , y);	
+			this.characters.get(this.inside.get(i)).display();
+		}
+		//Draw the connected line
+		for (int i = 0; i < this.inside.size(); i++) {	
+			for (int j = i+1; j < this.inside.size(); j++) {
+				int x1 = this.characters.get(this.inside.get(i)).getX(),
+					y1 = this.characters.get(this.inside.get(i)).getY(),
+					x2 = this.characters.get(this.inside.get(j)).getX(),
+					y2 = this.characters.get(this.inside.get(j)).getY();
+				if(this.characters.get(this.inside.get(i)).isConnected(this.inside.get(j))){	
+					this.parent.noFill();
+					this.parent.stroke(0);
+					this.parent.curve(x1*2 - circleCenterX , y1*2 - circleCenterY, 
+							 x1, y1, x2, y2,							
+							x2*2 -circleCenterX, y2*2 - circleCenterY);
+				}				
+			}
+		}
+		// Redraw the inside circle, so that they will be on the top of line.
+		for (int i = 0; i < this.inside.size(); i++) {				
+			this.characters.get(this.inside.get(i)).display();
+		}
+	}
+	public void moveToInside(int n){ // Move the nth circle inside to the outside.
+		characters.get(outside.get(n)).setInside(!this.characters.get(outside.get(n)).isInside());
+		characters.get(outside.get(n)).setListNumber(inside.size());
+		inside.add(outside.get(n));
+		for(int i = n+1; i < outside.size(); i++){
+			characters.get(outside.get(i)).setListNumber(characters.get(outside.get(i)).getListNumber()-1);
+		}
+		outside.remove(n);
 		
 	}
-	
+	public void moveToOutside(int n){
+		characters.get(inside.get(n)).setInside(!this.characters.get(inside.get(n)).isInside());
+		characters.get(inside.get(n)).setListNumber(outside.size());
+		outside.add(inside.get(n));
+		for(int i = n+1; i < inside.size(); i++){
+			characters.get(inside.get(i)).setListNumber(characters.get(inside.get(i)).getListNumber()-1);
+		}
+		inside.remove(n);
+	}
+	public int getOutsideSize(){
+		return this.outside.size();
+	}
+	public int getInsideSize(){
+		return this.inside.size();
+	}
 }
